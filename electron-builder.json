@@ -1,0 +1,11 @@
+{
+  "appId": "com.burgerhero.game",
+  "productName": "Burger Hero",
+  "directories": { "output": "release" },
+  "files": ["dist/**/*", "electron/**/*"],
+  "win": {
+    "target": ["nsis"],
+    "signAndEditExecutable": false
+  },
+  "mac": { "target": "dmg" }
+}

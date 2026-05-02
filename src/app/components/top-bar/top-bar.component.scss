@@ -1,0 +1,51 @@
+:host {
+  display: block;
+  pointer-events: none;
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  pointer-events: auto;
+}
+
+.top-bar--nav-only {
+  justify-content: flex-end;
+}
+
+.top-bar h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffe082;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.nav {
+  display: flex;
+  gap: 8px;
+}
+
+.nav button {
+  pointer-events: auto;
+  cursor: pointer;
+  border: 1px solid rgba(255, 213, 79, 0.45);
+  border-radius: 8px;
+  padding: 6px 12px;
+  background: rgba(40, 32, 24, 0.9);
+  color: #fff8e1;
+  font-size: 13px;
+}
+
+.nav button:hover {
+  background: rgba(70, 56, 40, 0.95);
+}
+
+.nav button.account-btn {
+  background: rgba(30, 40, 48, 0.95);
+  border-color: rgba(144, 202, 249, 0.45);
+  color: #e3f2fd;
+}

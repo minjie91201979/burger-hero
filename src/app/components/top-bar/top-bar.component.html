@@ -1,0 +1,11 @@
+<header class="top-bar" [class.top-bar--nav-only]="!showTitle()">
+  @if (showTitle()) {
+    <h1>{{ gameTitle() }}</h1>
+  }
+  <nav class="nav">
+    <button type="button" class="account-btn" (click)="returnToAccounts.emit()">切换账号</button>
+    <button type="button" (click)="toggleUpgrade.emit()">升级</button>
+    <button type="button" (click)="toggleAchievement.emit()">成就</button>
+    <button type="button" (click)="toggleSettings.emit()">设置</button>
+  </nav>
+</header>

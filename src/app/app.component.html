@@ -1,0 +1,85 @@
+<div class="game-root">
+  @if (phase() === 'gate') {
+    <app-account-gate (entered)="onEnteredGame()" />
+  } @else {
+    <div class="play-shell">
+      <header class="play-header">
+        <h1 class="play-title">{{ title }}</h1>
+        <div class="play-header-hud">
+          <app-hud />
+        </div>
+        <app-top-bar
+          class="play-header-actions"
+          ngSkipHydration
+          [gameTitle]="title"
+          [showTitle]="false"
+          (toggleUpgrade)="toggleUpgrade()"
+          (toggleAchievement)="toggleAchievement()"
+          (toggleSettings)="toggleSettings()"
+          (returnToAccounts)="onReturnToAccounts()"
+        />
+      </header>
+      <div class="play-body">
+        <aside class="play-sidebar">
+          <div class="sidebar-panels">
+            <app-order-panel />
+          </div>
+        </aside>
+        <main class="play-main">
+          <app-game-container />
+        </main>
+      </div>
+      @if (showUpgrade()) {
+        <div
+          class="modal-layer"
+          role="presentation"
+          (click)="showUpgrade.set(false)"
+        >
+          <div
+            class="modal-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-upgrade-title"
+            (click)="$event.stopPropagation()"
+          >
+            <app-upgrade-panel (closed)="showUpgrade.set(false)" />
+          </div>
+        </div>
+      }
+      @if (showAchievement()) {
+        <div
+          class="modal-layer"
+          role="presentation"
+          (click)="showAchievement.set(false)"
+        >
+          <div
+            class="modal-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-achievement-title"
+            (click)="$event.stopPropagation()"
+          >
+            <app-achievement (closed)="showAchievement.set(false)" />
+          </div>
+        </div>
+      }
+      @if (showSettings()) {
+        <div
+          class="modal-layer"
+          role="presentation"
+          (click)="showSettings.set(false)"
+        >
+          <div
+            class="modal-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-settings-title"
+            (click)="$event.stopPropagation()"
+          >
+            <app-settings (closed)="showSettings.set(false)" />
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
