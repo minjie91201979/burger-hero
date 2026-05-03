@@ -1,4 +1,6 @@
-import { Component, HostListener, signal } from '@angular/core';
+import { Component, HostListener, effect, inject, signal } from '@angular/core';
+import { HomeLandingComponent } from './components/home-landing/home-landing.component';
+import { GameBgmService } from './services/game-bgm.service';
 import { AccountGateComponent } from './components/account-gate/account-gate.component';
 import { GameContainerComponent } from './components/game-container/game-container.component';
 import { HudComponent } from './components/hud/hud.component';
@@ -11,6 +13,7 @@ import { TopBarComponent } from './components/top-bar/top-bar.component';
   selector: 'app-root',
   standalone: true,
   imports: [
+    HomeLandingComponent,
     AccountGateComponent,
     GameContainerComponent,
     TopBarComponent,
@@ -24,11 +27,23 @@ import { TopBarComponent } from './components/top-bar/top-bar.component';
   styleUrl: './app.component.scss',
 })
 export class AppComponent {
+  private readonly menuBgm = inject(GameBgmService);
+
   readonly title = '汉堡小英雄';
-  readonly phase = signal<'gate' | 'play'>('gate');
+  readonly phase = signal<'home' | 'gate' | 'play'>('home');
   readonly showUpgrade = signal(false);
   readonly showAchievement = signal(false);
   readonly showSettings = signal(false);
+
+  constructor() {
+    effect(() => {
+      if (this.phase() === 'play') {
+        this.menuBgm.pauseMenuBgm();
+      } else {
+        this.menuBgm.resumeMenuBgm();
+      }
+    });
+  }
 
   @HostListener('document:keydown.escape')
   onEscapeCloseModals(): void {
@@ -63,6 +78,10 @@ export class AppComponent {
       this.showUpgrade.set(false);
       this.showAchievement.set(false);
     }
+  }
+
+  onLeaveHome(): void {
+    this.phase.set('gate');
   }
 
   onEnteredGame(): void {

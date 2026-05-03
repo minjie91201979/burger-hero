@@ -22,7 +22,7 @@ import { GameEventsService } from '../../services/game-events.service';
       }
       .hud {
         display: flex;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         gap: 10px;
         align-items: center;
         padding: 10px 14px;
@@ -30,6 +30,8 @@ import { GameEventsService } from '../../services/game-events.service';
         border-radius: 10px;
         border: 1px solid rgba(255, 193, 7, 0.35);
         pointer-events: auto;
+        max-width: 100%;
+        overflow-x: auto;
       }
       .pill {
         font-size: 15px;
@@ -37,10 +39,10 @@ import { GameEventsService } from '../../services/game-events.service';
         color: #fff8e1;
       }
       .toast {
-        flex-basis: 100%;
+        flex: 0 0 auto;
         font-size: 13px;
         color: #ffecb3;
-        margin-top: 4px;
+        white-space: nowrap;
       }
     `,
   ],

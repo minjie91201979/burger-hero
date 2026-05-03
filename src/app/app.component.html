@@ -1,5 +1,7 @@
 <div class="game-root">
-  @if (phase() === 'gate') {
+  @if (phase() === 'home') {
+    <app-home-landing (enter)="onLeaveHome()" />
+  } @else if (phase() === 'gate') {
     <app-account-gate (entered)="onEnteredGame()" />
   } @else {
     <div class="play-shell">

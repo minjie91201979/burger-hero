@@ -3,10 +3,16 @@ import type { GameSaveData } from '../../models/burger-game.model';
 import { GameEventsService } from '../../services/game-events.service';
 import { ProfileService } from '../../services/profile.service';
 
+const GAME_BG = 'assets/images/kitchen/game_bg.png';
+
 @Component({
   selector: 'app-game-container',
   standalone: true,
-  template: '<div id="burger-game" class="burger-host"></div>',
+  template: `
+    <div class="play-surface" [style.background]="playSurfaceBg">
+      <div id="burger-game" class="burger-host"></div>
+    </div>
+  `,
   styles: [
     `
       :host {
@@ -14,6 +20,13 @@ import { ProfileService } from '../../services/profile.service';
         position: absolute;
         inset: 0;
         z-index: 0;
+      }
+      .play-surface {
+        width: 100%;
+        height: 100%;
+        min-height: 100%;
+        position: relative;
+        box-sizing: border-box;
       }
       .burger-host {
         width: 100%;
@@ -25,6 +38,7 @@ import { ProfileService } from '../../services/profile.service';
   ],
 })
 export class GameContainerComponent {
+  readonly playSurfaceBg = `#1a1209 url(${JSON.stringify(GAME_BG)}) center / cover no-repeat`;
   private readonly zone = inject(NgZone);
   private readonly events = inject(GameEventsService);
   private readonly profile = inject(ProfileService);
@@ -72,7 +86,7 @@ export class GameContainerComponent {
         parent: 'burger-game',
         width: 1024,
         height: 720,
-        backgroundColor: '#1a1209',
+        transparent: true,
         scene: [PreloadScene, KitchenScene],
         scale: {
           mode: Phaser.Scale.FIT,

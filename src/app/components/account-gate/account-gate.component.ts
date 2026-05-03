@@ -1,12 +1,15 @@
 import { Component, inject, output, signal } from '@angular/core';
 
+import { GameBgmService } from '../../services/game-bgm.service';
 import { ProfileService } from '../../services/profile.service';
+
+const LOGIN_BG = 'assets/images/kitchen/hamburger_login_bg.png';
 
 @Component({
   selector: 'app-account-gate',
   standalone: true,
   template: `
-    <div class="gate">
+    <div class="gate" [style.background]="gateBg">
       <div class="card">
         <h1 class="title">汉堡小英雄</h1>
         <p class="subtitle">请选择已有账号，或新建账号后再进入游戏。</p>
@@ -72,7 +75,6 @@ import { ProfileService } from '../../services/profile.service';
         align-items: center;
         justify-content: center;
         padding: 24px;
-        background: radial-gradient(ellipse at top, #2a1f14 0%, #0d0806 55%);
       }
       .card {
         width: min(440px, 100%);
@@ -175,6 +177,9 @@ import { ProfileService } from '../../services/profile.service';
 })
 export class AccountGateComponent {
   private readonly profile = inject(ProfileService);
+  private readonly menuBgm = inject(GameBgmService);
+
+  readonly gateBg = `radial-gradient(ellipse at center, rgba(13, 8, 6, 0.35) 0%, rgba(13, 8, 6, 0.72) 100%), #1a1209 url(${JSON.stringify(LOGIN_BG)}) center / cover no-repeat`;
 
   readonly entered = output<void>();
 
@@ -199,6 +204,7 @@ export class AccountGateComponent {
 
   onEnter(): void {
     if (!this.canEnter()) return;
+    this.menuBgm.resumeMenuBgm();
     void (async () => {
       await this.profile.syncInitialFromActiveProfile();
       this.entered.emit();

@@ -24,6 +24,23 @@ export class PreloadScene extends Scene {
     super({ key: 'PreloadScene' });
   }
 
+  preload(): void {
+    this.load.image('kitchen_bg', 'assets/images/kitchen/game_bg.png');
+    const ing = 'assets/images/ingredients';
+    this.load.image('bun_bottom', `${ing}/mianbao_b.png`);
+    this.load.image('bun_top', `${ing}/mianbao_t.png`);
+    this.load.image('lettuce', `${ing}/shengcai.png`);
+    this.load.image('cheese', `${ing}/zhishi.png`);
+    this.load.image('patty_raw', `${ing}/meet_s.png`);
+    this.load.image('patty_cooked', `${ing}/meet_shu.png`);
+    this.load.image('patty_burnt', `${ing}/meet_j.png`);
+    this.load.image('kaopan', `${ing}/kaopan.png`);
+    this.load.image('cipan', `${ing}/cipan.png`);
+    this.load.image('kongpan', `${ing}/kongpan.png`);
+    this.load.image('jisuanqi', `${ing}/jisuanqi.png`);
+    this.load.audio('kaorou_zizi', 'assets/sound/kaorou_zizi.wav');
+  }
+
   create(): void {
     const bar = this.add.graphics();
     const box = this.add.graphics();
@@ -45,26 +62,6 @@ export class PreloadScene extends Scene {
   }
 
   private buildPlaceholderTextures(): void {
-    const gw = 1024;
-    const gh = 720;
-    const g = this.make.graphics({ x: 0, y: 0 });
-    g.fillGradientStyle(0x3d2914, 0x3d2914, 0x1a1209, 0x1a1209, 1);
-    g.fillRect(0, 0, gw, gh);
-    g.generateTexture('kitchen_bg', gw, gh);
-    g.destroy();
-
-    roundedRectTexture(this, 'grill', 220, 130, 0x4a4a4a, 0x888888);
-    roundedRectTexture(this, 'bun_bottom', 72, 36, 0xd4a574, 0x8b5a2b);
-    roundedRectTexture(this, 'bun_top', 72, 36, 0xc49464, 0x7a4a1b);
-    roundedRectTexture(this, 'lettuce', 56, 28, 0x3cb371, 0x1e6b3a);
-    roundedRectTexture(this, 'cheese', 60, 24, 0xffd54f, 0xc49000);
-    roundedRectTexture(this, 'patty_raw', 64, 40, 0xcd5c5c, 0x8b0000);
-    roundedRectTexture(this, 'patty_cooked', 64, 40, 0x6b3e26, 0x3d2215);
-    roundedRectTexture(this, 'patty_burnt', 64, 40, 0x2b2b2b, 0x000000);
-    roundedRectTexture(this, 'btn_spawn', 88, 40, 0x8b4513, 0xffe4c4);
-    roundedRectTexture(this, 'plate', 200, 160, 0xf5f5dc, 0xc4b896);
-    roundedRectTexture(this, 'serve_btn', 100, 44, 0xe65100, 0xffcc80);
-    roundedRectTexture(this, 'clear_btn', 80, 36, 0x546e7a, 0xb0bec5);
     roundedRectTexture(this, 'customer_body', 64, 96, 0x5c6bc0, 0x1a237e);
   }
 }

@@ -12,6 +12,34 @@ const COOK_TO_PERFECT_MS = 5200;
 const PERFECT_TO_BURNT_MS = 3800;
 /** 倒计时在肉饼中心下方的 Y 偏移（像素） */
 const GRILL_COUNTDOWN_Y_OFFSET = 36;
+/** 底部食材栏图标最大尺寸（原图较大，统一缩放） */
+const ING_BAR_ICON_MAX = { w: 92, h: 58 };
+/** 「取生肉」入口与生肉 PNG 一致，单独控制尺寸 */
+const SPAWN_RAW_ICON_MAX = { w: 100, h: 76 };
+/** 「清空盘」空盘图标尺寸 */
+const CLEAR_PLATE_ICON_MAX = { w: 92, h: 60 };
+/** 「出餐」计算器图标尺寸 */
+const SERVE_BTN_ICON_MAX = { w: 100, h: 64 };
+/** 生肉饼 / 烤架上的肉饼显示尺寸上限 */
+const PATTY_ICON_MAX = { w: 88, h: 88 };
+/** 餐盘叠放单层显示尺寸上限（PNG 按此框等比缩小，整体更大） */
+const STACK_LAYER_MAX = { w: 176, h: 132 };
+/** 相邻两层中心距 ≈ 层高×比例，越小叠得越紧（参考效果图几乎贴在一起） */
+const STACK_LAYER_OVERLAP = 0.21;
+/** 最底层食材中心：相对盘子区域中心向下占半高的比例（越大越靠盘底） */
+const PLATE_STACK_BOTTOM_FRAC = 0.36;
+/** 叠放整体竖直微调：负值上移（画面上更高），与瓷盘视觉对齐 */
+const PLATE_STACK_ANCHOR_OFFSET = -34;
+
+/** 与 `game_bg.png` 中平底锅、白盘大致对齐的交互区（Phaser Zone：x/y 为区域中心） */
+const GRILL_ZONE = { cx: 252, cy: 408, w: 320, h: 220 };
+const PLATE_ZONE = { cx: 752, cy: 398, w: 320, h: 236 };
+/** 瓷盘图相对 `PLATE_ZONE` 中心下移（像素），仅移动贴图不改动交互区 */
+const PLATE_DISH_GRAPHIC_OY = 58;
+/** 烤盘 PNG 最大显示尺寸（略小于交互区，避免压住灶具描边） */
+const GRILL_PAN_MAX = { w: GRILL_ZONE.w - 20, h: GRILL_ZONE.h - 24 };
+/** 瓷盘 PNG 最大显示尺寸（略小于出餐交互区） */
+const PLATE_DISH_MAX = { w: PLATE_ZONE.w - 16, h: PLATE_ZONE.h - 20 };
 
 /** 操作台肉饼 Image 与烤架槽 Container 均带 Transform，用于拖拽回调收窄类型 */
 type PattyDragObject = Phaser.GameObjects.Image | Phaser.GameObjects.Container;
@@ -50,6 +78,8 @@ export class KitchenScene extends Scene {
   private feedbackText!: Phaser.GameObjects.Text;
   private plateZone!: Phaser.GameObjects.Zone;
   private grillZone!: Phaser.GameObjects.Zone;
+  /** 烤制中生肉时的滋滋声（循环），无烤制槽时停止 */
+  private grillSizzleSound?: Phaser.Sound.BaseSound;
   private spawnRowY = 640;
   constructor() {
     super({ key: 'KitchenScene' });
@@ -89,30 +119,44 @@ export class KitchenScene extends Scene {
   }
 
   create(): void {
-    this.add.image(512, 360, 'kitchen_bg').setDepth(0);
-    this.add.image(190, 440, 'grill').setOrigin(0.5, 0.5).setDepth(1);
-    this.add.image(720, 430, 'plate').setOrigin(0.5, 0.5).setDepth(1);
+    // this.add
+    //   .image(512, 360, 'kitchen_bg')
+    //   .setDepth(0)
+    //   .setDisplaySize(1024, 720);
 
-    this.grillZone = this.add.zone(190, 440, 200, 120).setDepth(2);
-    this.plateZone = this.add.zone(720, 430, 200, 150).setDepth(2);
+    const grillPan = this.add
+      .image(GRILL_ZONE.cx, GRILL_ZONE.cy, 'kaopan')
+      .setDepth(1);
+    this.fitImageUniform(grillPan, GRILL_PAN_MAX.w, GRILL_PAN_MAX.h);
 
-    this.add
-      .text(120, 340, '烤架（肉饼下方为倒计时，熟后拖肉饼到餐盘）', {
-        fontSize: '14px',
-        color: '#ffe0b2',
-        wordWrap: { width: 220 },
-      })
-      .setDepth(3);
-    this.add.text(640, 300, '出餐台（按订单自下而上叠放）', {
+    this.grillZone = this.add
+      .zone(GRILL_ZONE.cx, GRILL_ZONE.cy, GRILL_ZONE.w, GRILL_ZONE.h)
+      .setDepth(2);
+    this.plateZone = this.add
+      .zone(PLATE_ZONE.cx, PLATE_ZONE.cy, PLATE_ZONE.w, PLATE_ZONE.h)
+      .setDepth(2);
+
+    const ciPan = this.add
+      .image(PLATE_ZONE.cx, PLATE_ZONE.cy + PLATE_DISH_GRAPHIC_OY, 'cipan')
+      .setDepth(1);
+    this.fitImageUniform(ciPan, PLATE_DISH_MAX.w, PLATE_DISH_MAX.h);
+
+    this.add.text(640, 250, '出餐台（按订单自下而上叠放）', {
       fontSize: '16px',
-      color: '#ffe0b2',
+      color: '#333333',
     }).setDepth(3);
 
     this.hudText = this.add
       .text(24, 16, '', { fontSize: '18px', color: '#fff8e1', fontStyle: 'bold' })
       .setDepth(10);
     this.stackLabel = this.add
-      .text(620, 520, '', { fontSize: '14px', color: '#eceff1' })
+      .text(PLATE_ZONE.cx, PLATE_ZONE.cy + PLATE_ZONE.h * 0.62, '', {
+        fontSize: '14px',
+        color: '#eceff1',
+        align: 'center',
+        wordWrap: { width: Math.min(PLATE_ZONE.w + 80, 360) },
+      })
+      .setOrigin(0.5, 0)
       .setDepth(10);
     this.feedbackText = this.add
       .text(512, 120, '', { fontSize: '20px', color: '#ffeb3b' })
@@ -165,6 +209,7 @@ export class KitchenScene extends Scene {
     this.events.once('destroy', () => {
       this.upgradeSub?.unsubscribe();
       this.saveTimer?.destroy();
+      this.stopGrillSizzle();
     });
   }
 
@@ -205,6 +250,46 @@ export class KitchenScene extends Scene {
     } else if (changed) {
       this.pushOrders();
     }
+
+    const hasCooking = this.grillSlots.some((s) => s.phase === 'cooking');
+    this.syncGrillSizzle(hasCooking);
+  }
+
+  private syncGrillSizzle(shouldPlay: boolean): void {
+    if (shouldPlay) {
+      if (!this.grillSizzleSound) {
+        this.grillSizzleSound = this.sound.add('kaorou_zizi', { loop: true, volume: 0.4 });
+      }
+      if (!this.grillSizzleSound.isPlaying) {
+        this.grillSizzleSound.play();
+      }
+    } else {
+      this.stopGrillSizzle();
+    }
+  }
+
+  private stopGrillSizzle(): void {
+    if (this.grillSizzleSound?.isPlaying) {
+      this.grillSizzleSound.stop();
+    }
+  }
+
+  /** PNG 素材缩放到界面可用尺寸（保持宽高比） */
+  private fitImageUniform(
+    img: Phaser.GameObjects.Image,
+    maxW: number,
+    maxH: number,
+  ): void {
+    const iw = img.width;
+    const ih = img.height;
+    if (iw <= 0 || ih <= 0) return;
+    const s = Math.min(maxW / iw, maxH / ih);
+    img.setScale(s);
+  }
+
+  private applyPattyDisplaySize(sprite: Phaser.GameObjects.Image): void {
+    sprite.setScale(1);
+    this.fitImageUniform(sprite, PATTY_ICON_MAX.w, PATTY_ICON_MAX.h);
   }
 
   private buildIngredientBar(): void {
@@ -220,6 +305,7 @@ export class KitchenScene extends Scene {
         .image(x, this.spawnRowY, d.key)
         .setInteractive({ useHandCursor: true })
         .setDepth(5);
+      this.fitImageUniform(img, ING_BAR_ICON_MAX.w, ING_BAR_ICON_MAX.h);
       img.on('pointerdown', () => this.tryAddIngredient(d.id));
       this.add
         .text(x, this.spawnRowY + 36, d.label, { fontSize: '11px', color: '#cfd8dc' })
@@ -231,9 +317,10 @@ export class KitchenScene extends Scene {
 
   private buildPattySpawn(): void {
     const btn = this.add
-      .image(120, this.spawnRowY, 'btn_spawn')
+      .image(120, this.spawnRowY, 'patty_raw')
       .setInteractive({ useHandCursor: true })
       .setDepth(5);
+    this.fitImageUniform(btn, SPAWN_RAW_ICON_MAX.w, SPAWN_RAW_ICON_MAX.h);
     this.add
       .text(120, this.spawnRowY + 36, '取生肉', { fontSize: '11px', color: '#cfd8dc' })
       .setOrigin(0.5, 0)
@@ -243,19 +330,21 @@ export class KitchenScene extends Scene {
 
   private buildActions(): void {
     const serve = this.add
-      .image(880, this.spawnRowY - 20, 'serve_btn')
+      .image(880, this.spawnRowY - 20, 'jisuanqi')
       .setInteractive({ useHandCursor: true })
       .setDepth(5);
+    this.fitImageUniform(serve, SERVE_BTN_ICON_MAX.w, SERVE_BTN_ICON_MAX.h);
     this.add
-      .text(880, this.spawnRowY + 20, '出餐', { fontSize: '12px', color: '#3e2723' })
+      .text(880, this.spawnRowY + 20, '出餐', { fontSize: '12px', color: '#eceff1' })
       .setOrigin(0.5, 0)
       .setDepth(5);
     serve.on('pointerdown', () => this.tryServe());
 
     const clear = this.add
-      .image(780, this.spawnRowY - 20, 'clear_btn')
+      .image(780, this.spawnRowY - 20, 'kongpan')
       .setInteractive({ useHandCursor: true })
       .setDepth(5);
+    this.fitImageUniform(clear, CLEAR_PLATE_ICON_MAX.w, CLEAR_PLATE_ICON_MAX.h);
     this.add
       .text(780, this.spawnRowY + 20, '清空盘', { fontSize: '12px', color: '#eceff1' })
       .setOrigin(0.5, 0)
@@ -269,6 +358,7 @@ export class KitchenScene extends Scene {
       return;
     }
     const s = this.add.image(280, 500, 'patty_raw').setDepth(6);
+    this.applyPattyDisplaySize(s);
     s.setData('kind', 'patty');
     s.setData('mode', 'counter');
     this.ensurePattyDraggable(s);
@@ -391,8 +481,8 @@ export class KitchenScene extends Scene {
       .setOrigin(0.5, 0);
     root.add(label);
 
-    const hitW = 112;
-    const hitH = 100;
+    const hitW = 148;
+    const hitH = 112;
     root.setInteractive({
       hitArea: new Geom.Rectangle(-hitW / 2, -28, hitW, hitH),
       hitAreaCallback: Geom.Rectangle.Contains,
@@ -418,6 +508,7 @@ export class KitchenScene extends Scene {
     if (slot.phase !== 'cooking') return;
     slot.phase = 'perfect';
     slot.sprite.setTexture('patty_cooked');
+    this.applyPattyDisplaySize(slot.sprite);
     this.bringGrillSlotForward(slot);
     const burntDelay = PERFECT_TO_BURNT_MS / this.grillSpeed;
     slot.burntAt = time + burntDelay;
@@ -428,6 +519,7 @@ export class KitchenScene extends Scene {
       if (slot.phase === 'perfect') {
         slot.phase = 'burnt';
         slot.sprite.setTexture('patty_burnt');
+        this.applyPattyDisplaySize(slot.sprite);
         this.bringGrillSlotForward(slot);
         slot.burntAt = undefined;
         slot.label.setText('已变焦');
@@ -466,12 +558,26 @@ export class KitchenScene extends Scene {
   private refreshStackVisual(): void {
     for (const c of this.stackSprites) c.destroy();
     this.stackSprites = [];
-    let y = 470;
+    if (this.stack.length === 0) return;
+
+    const layers: { img: Phaser.GameObjects.Image; step: number }[] = [];
     for (const id of this.stack) {
-      const img = this.add.image(0, 0, id).setScale(0.85);
-      const c = this.add.container(720, y, [img]).setDepth(4);
+      const img = this.add.image(0, 0, id);
+      this.fitImageUniform(img, STACK_LAYER_MAX.w, STACK_LAYER_MAX.h);
+      const step = Math.max(11, Math.round(img.displayHeight * STACK_LAYER_OVERLAP));
+      layers.push({ img, step });
+    }
+
+    const bottomCenterY =
+      PLATE_ZONE.cy + PLATE_ZONE.h * PLATE_STACK_BOTTOM_FRAC + PLATE_STACK_ANCHOR_OFFSET;
+    let y = bottomCenterY;
+    for (let i = 0; i < layers.length; i++) {
+      const { img, step } = layers[i]!;
+      const c = this.add.container(PLATE_ZONE.cx, y, [img]).setDepth(4);
       this.stackSprites.push(c);
-      y -= 14;
+      if (i < layers.length - 1) {
+        y -= step;
+      }
     }
   }
 
@@ -493,7 +599,7 @@ export class KitchenScene extends Scene {
       patty_burnt: '焦肉',
     };
     const line = this.stack.map((i) => names[i]).join(' → ') || '（空）';
-    this.stackLabel.setText(`当前盘子：\n${line}`);
+    this.stackLabel.setText(`当前盘子：${line}`);
   }
 
   private tryServe(): void {
