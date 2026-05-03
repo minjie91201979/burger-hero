@@ -39,6 +39,8 @@ export class PreloadScene extends Scene {
     this.load.image('kongpan', `${ing}/kongpan.png`);
     this.load.image('jisuanqi', `${ing}/jisuanqi.png`);
     this.load.audio('kaorou_zizi', 'assets/sound/kaorou_zizi.wav');
+    this.load.audio('lingdang', 'assets/sound/lingdang.wav');
+    this.load.audio('jinbi', 'assets/sound/jinbi.wav');
   }
 
   create(): void {

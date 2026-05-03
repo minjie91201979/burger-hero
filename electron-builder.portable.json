@@ -2,9 +2,19 @@
   "appId": "com.burgerhero.game",
   "productName": "Burger Hero",
   "directories": { "output": "release-portable" },
-  "files": ["dist/**/*", "electron/**/*"],
+  "asar": true,
+  "compression": "maximum",
+  "npmRebuild": false,
+  "afterPack": "./scripts/electron-after-pack.mjs",
+  "electronLanguages": ["en-US", "zh-CN"],
+  "files": [
+    "package.json",
+    "electron/**/*",
+    "dist/burger-hero/browser/**/*",
+    "!**/*.map"
+  ],
   "win": {
-    "target": ["portable"],
+    "target": [{ "target": "portable", "arch": ["x64"] }],
     "signAndEditExecutable": false
   },
   "mac": { "target": "dmg" }

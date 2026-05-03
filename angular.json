@@ -40,14 +40,14 @@
               "src/styles.scss"
             ],
             "scripts": [],
-            "server": "src/main.server.ts",
             "prerender": false,
-            "ssr": {
-              "entry": "server.ts"
-            }
+            "ssr": false
           },
           "configurations": {
             "production": {
+              "optimization": true,
+              "sourceMap": false,
+              "extractLicenses": true,
               "budgets": [
                 {
                   "type": "initial",

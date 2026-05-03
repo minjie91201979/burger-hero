@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
@@ -52,14 +53,11 @@ function createWindow() {
     void win.loadURL('http://localhost:4200');
     win.webContents.openDevTools({ mode: 'detach' });
   } else {
-    // Angular application builder + SSR 产出 browser/index.csr.html，无 index.html
-    const indexPath = path.join(
-      app.getAppPath(),
-      'dist',
-      'burger-hero',
-      'browser',
-      'index.csr.html',
-    );
+    const browserDir = path.join(app.getAppPath(), 'dist', 'burger-hero', 'browser');
+    const candidates = ['index.html', 'index.csr.html'];
+    const indexPath =
+      candidates.map((n) => path.join(browserDir, n)).find((p) => fs.existsSync(p)) ??
+      path.join(browserDir, 'index.html');
     void win.loadFile(indexPath).catch((err) => {
       console.error('[burger-hero] loadFile failed', indexPath, err);
     });

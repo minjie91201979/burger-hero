@@ -5,7 +5,7 @@ import {
   type IngredientId,
 } from '../../../app/models/burger-game.model';
 import type { GameEventBridge } from '../event-bridge.interface';
-import { Customer, randomCustomerName } from '../entities/customer';
+import { Customer, randomCustomerNameExcluding } from '../entities/customer';
 import { Order } from '../entities/order';
 
 const COOK_TO_PERFECT_MS = 5200;
@@ -613,6 +613,7 @@ export class KitchenScene extends Scene {
       this.showFeedback('再检查一下订单', 900);
       return;
     }
+    this.sound.play('lingdang', { volume: 0.55 });
     const hasBurnt = this.stack.includes('patty_burnt');
     let gain = 18 + Math.floor(c.patience / 80);
     if (!hasBurnt) gain += 6;
@@ -626,6 +627,9 @@ export class KitchenScene extends Scene {
     this.eventsBridge.emitCombo(this.combo);
     this.eventsBridge.emitScore(this.score);
     this.eventsBridge.emitToast(`完成订单 +$${gain}`);
+    this.time.delayedCall(180, () => {
+      this.sound.play('jinbi', { volume: 0.62 });
+    });
     this.pushOrders();
     this.syncHud();
     this.pushSave();
@@ -636,7 +640,12 @@ export class KitchenScene extends Scene {
     const rng = () => Math.random();
     const order = Order.randomOrder(rng);
     const maxP = Math.floor((9000 + rng() * 6000) * this.patienceMult);
-    const cust = new Customer(order, maxP, randomCustomerName(rng));
+    const usedNames = new Set(this.customers.map((c) => c.displayName));
+    const cust = new Customer(
+      order,
+      maxP,
+      randomCustomerNameExcluding(rng, usedNames),
+    );
     this.customers.push(cust);
     this.pushOrders();
   }

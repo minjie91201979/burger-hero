@@ -1,5 +1,11 @@
 import type { BurgerOrderSnapshot } from '../../../app/models/burger-game.model';
+import {
+  randomCustomerName as randomCustomerNameFromPool,
+  randomCustomerNameExcluding,
+} from '../../../app/data/customer-portraits';
 import { Order } from './order';
+
+export { randomCustomerNameFromPool as randomCustomerName, randomCustomerNameExcluding };
 
 export class Customer {
   readonly order: Order;
@@ -23,10 +29,4 @@ export class Customer {
       maxPatience: this.maxPatience,
     };
   }
-}
-
-const NAMES = ['阿明', '小莉', '杰克', '美玲', '老周', '艾米'];
-
-export function randomCustomerName(rng: () => number): string {
-  return NAMES[Math.floor(rng() * NAMES.length)] ?? '顾客';
 }
