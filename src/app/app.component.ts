@@ -3,6 +3,8 @@ import { HomeLandingComponent } from './components/home-landing/home-landing.com
 import { GameBgmService } from './services/game-bgm.service';
 import { AccountGateComponent } from './components/account-gate/account-gate.component';
 import { GameContainerComponent } from './components/game-container/game-container.component';
+import { GameSelectComponent, type SelectableGameId } from './components/game-select/game-select.component';
+import { WarriorWalkGameContainerComponent } from './components/warrior-walk-game-container/warrior-walk-game-container.component';
 import { HudComponent } from './components/hud/hud.component';
 import { OrderPanelComponent } from './components/order-panel/order-panel.component';
 import { UpgradePanelComponent } from './components/upgrade-panel/upgrade-panel.component';
@@ -16,6 +18,8 @@ import { TopBarComponent } from './components/top-bar/top-bar.component';
     HomeLandingComponent,
     AccountGateComponent,
     GameContainerComponent,
+    GameSelectComponent,
+    WarriorWalkGameContainerComponent,
     TopBarComponent,
     HudComponent,
     OrderPanelComponent,
@@ -30,7 +34,15 @@ export class AppComponent {
   private readonly menuBgm = inject(GameBgmService);
 
   readonly title = '汉堡小英雄';
-  readonly phase = signal<'home' | 'gate' | 'play'>('home');
+  /** 启动即进入「选择游戏」 */
+  readonly phase = signal<'home' | 'gate' | 'game-select' | 'play'>('game-select');
+  /** 仅在 `phase === 'play'` 时有效 */
+  readonly playGameId = signal<SelectableGameId | null>(null);
+  /**
+   * 进入账号门时期望登录后继续的游戏；`burger` 表示选过汉堡或从汉堡内切换账号；
+   * `null` 表示仅从欢迎页/武将侧进入账号，登录后回到选择游戏。
+   */
+  readonly gateResumeGame = signal<'burger' | null>(null);
   readonly showUpgrade = signal(false);
   readonly showAchievement = signal(false);
   readonly showSettings = signal(false);
@@ -81,17 +93,76 @@ export class AppComponent {
   }
 
   onLeaveHome(): void {
+    this.gateResumeGame.set(null);
     this.phase.set('gate');
   }
 
   onEnteredGame(): void {
-    this.phase.set('play');
+    const resume = this.gateResumeGame();
+    this.gateResumeGame.set(null);
+    if (resume === 'burger') {
+      this.playGameId.set('burger');
+      this.phase.set('play');
+    } else {
+      this.playGameId.set(null);
+      this.phase.set('game-select');
+    }
   }
 
-  onReturnToAccounts(): void {
+  onPickGame(id: SelectableGameId): void {
+    if (id === 'warrior') {
+      this.playGameId.set('warrior');
+      this.phase.set('play');
+      return;
+    }
+    this.gateResumeGame.set('burger');
+    this.phase.set('gate');
+  }
+
+  /** 选择页：仅管理存档账号（不预选汉堡） */
+  onOpenAccountsFromPicker(): void {
+    this.gateResumeGame.set(null);
+    this.phase.set('gate');
+  }
+
+  /** 选择页：进入欢迎页 */
+  onOpenHomeFromPicker(): void {
+    this.phase.set('home');
+  }
+
+  /** 账号门：返回选择游戏 */
+  onBackFromGateToGameSelect(): void {
+    this.gateResumeGame.set(null);
+    this.phase.set('game-select');
+  }
+
+  /** 汉堡游玩中：切换账号，登录后继续汉堡 */
+  onReturnToAccountsAfterBurger(): void {
     this.showUpgrade.set(false);
     this.showAchievement.set(false);
     this.showSettings.set(false);
+    this.playGameId.set(null);
+    this.gateResumeGame.set('burger');
     this.phase.set('gate');
   }
+
+  /** 武将游玩中：切换账号，登录后回选择游戏 */
+  onReturnToAccountsAfterWarrior(): void {
+    this.showUpgrade.set(false);
+    this.showAchievement.set(false);
+    this.showSettings.set(false);
+    this.playGameId.set(null);
+    this.gateResumeGame.set(null);
+    this.phase.set('gate');
+  }
+
+  onReturnToGameSelect(): void {
+    this.showUpgrade.set(false);
+    this.showAchievement.set(false);
+    this.showSettings.set(false);
+    this.playGameId.set(null);
+    this.gateResumeGame.set(null);
+    this.phase.set('game-select');
+  }
+
 }

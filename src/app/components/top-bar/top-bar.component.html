@@ -3,6 +3,7 @@
     <h1>{{ gameTitle() }}</h1>
   }
   <nav class="nav">
+    <button type="button" class="ghost-btn" (click)="chooseGame.emit()">选择游戏</button>
     <button type="button" class="account-btn" (click)="returnToAccounts.emit()">切换账号</button>
     <button type="button" (click)="toggleUpgrade.emit()">升级</button>
     <button type="button" (click)="toggleAchievement.emit()">成就</button>

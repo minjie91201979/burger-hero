@@ -59,6 +59,8 @@ const LOGIN_BG = 'assets/images/kitchen/hamburger_login_bg.png';
         >
           进入游戏
         </button>
+
+        <button type="button" class="link-back" (click)="onBack()">返回选游戏</button>
       </div>
     </div>
   `,
@@ -172,6 +174,21 @@ const LOGIN_BG = 'assets/images/kitchen/hamburger_login_bg.png';
         background: #37474f;
         color: #eceff1;
       }
+      .link-back {
+        display: block;
+        width: 100%;
+        margin-top: 14px;
+        cursor: pointer;
+        border: none;
+        background: none;
+        color: #90caf9;
+        font-size: 14px;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      .link-back:hover {
+        color: #bbdefb;
+      }
     `,
   ],
 })
@@ -182,6 +199,7 @@ export class AccountGateComponent {
   readonly gateBg = `radial-gradient(ellipse at center, rgba(13, 8, 6, 0.35) 0%, rgba(13, 8, 6, 0.72) 100%), #1a1209 url(${JSON.stringify(LOGIN_BG)}) center / cover no-repeat`;
 
   readonly entered = output<void>();
+  readonly back = output<void>();
 
   readonly profiles = this.profile.profiles;
   readonly activeId = this.profile.activeProfileId;
@@ -209,5 +227,9 @@ export class AccountGateComponent {
       await this.profile.syncInitialFromActiveProfile();
       this.entered.emit();
     })();
+  }
+
+  onBack(): void {
+    this.back.emit();
   }
 }

@@ -14,4 +14,6 @@ export class TopBarComponent {
   readonly toggleAchievement = output<void>();
   readonly toggleSettings = output<void>();
   readonly returnToAccounts = output<void>();
+  /** 返回「选择游戏」列表（不退出当前账号） */
+  readonly chooseGame = output<void>();
 }

@@ -1,9 +1,30 @@
 <div class="game-root">
-  @if (phase() === 'home') {
+  @if (phase() === 'game-select') {
+    <app-game-select
+      (picked)="onPickGame($event)"
+      (openAccounts)="onOpenAccountsFromPicker()"
+      (openHome)="onOpenHomeFromPicker()"
+    />
+  } @else if (phase() === 'home') {
     <app-home-landing (enter)="onLeaveHome()" />
   } @else if (phase() === 'gate') {
-    <app-account-gate (entered)="onEnteredGame()" />
-  } @else {
+    <app-account-gate (entered)="onEnteredGame()" (back)="onBackFromGateToGameSelect()" />
+  } @else if (phase() === 'play' && playGameId() === 'warrior') {
+    <div class="warrior-play-shell">
+      <header class="warrior-play-header">
+        <h1 class="warrior-play-title">武将行军</h1>
+        <div class="warrior-play-actions">
+          <button type="button" class="warrior-btn" (click)="onReturnToGameSelect()">返回选游戏</button>
+          <button type="button" class="warrior-btn warrior-btn--muted" (click)="onReturnToAccountsAfterWarrior()">
+            切换账号
+          </button>
+        </div>
+      </header>
+      <main class="warrior-play-main">
+        <app-warrior-walk-game-container />
+      </main>
+    </div>
+  } @else if (phase() === 'play' && playGameId() === 'burger') {
     <div class="play-shell">
       <header class="play-header">
         <h1 class="play-title">{{ title }}</h1>
@@ -18,7 +39,8 @@
           (toggleUpgrade)="toggleUpgrade()"
           (toggleAchievement)="toggleAchievement()"
           (toggleSettings)="toggleSettings()"
-          (returnToAccounts)="onReturnToAccounts()"
+          (chooseGame)="onReturnToGameSelect()"
+          (returnToAccounts)="onReturnToAccountsAfterBurger()"
         />
       </header>
       <div class="play-body">
