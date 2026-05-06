@@ -5,6 +5,7 @@ import { AccountGateComponent } from './components/account-gate/account-gate.com
 import { GameContainerComponent } from './components/game-container/game-container.component';
 import { GameSelectComponent, type SelectableGameId } from './components/game-select/game-select.component';
 import { WarriorWalkGameContainerComponent } from './components/warrior-walk-game-container/warrior-walk-game-container.component';
+import { HeroDuelGameContainerComponent } from './components/hero-duel-game-container/hero-duel-game-container.component';
 import { HudComponent } from './components/hud/hud.component';
 import { OrderPanelComponent } from './components/order-panel/order-panel.component';
 import { UpgradePanelComponent } from './components/upgrade-panel/upgrade-panel.component';
@@ -20,6 +21,7 @@ import { TopBarComponent } from './components/top-bar/top-bar.component';
     GameContainerComponent,
     GameSelectComponent,
     WarriorWalkGameContainerComponent,
+    HeroDuelGameContainerComponent,
     TopBarComponent,
     HudComponent,
     OrderPanelComponent,
@@ -110,8 +112,8 @@ export class AppComponent {
   }
 
   onPickGame(id: SelectableGameId): void {
-    if (id === 'warrior') {
-      this.playGameId.set('warrior');
+    if (id === 'warrior' || id === 'hero-duel') {
+      this.playGameId.set(id);
       this.phase.set('play');
       return;
     }
@@ -146,7 +148,7 @@ export class AppComponent {
     this.phase.set('gate');
   }
 
-  /** 武将游玩中：切换账号，登录后回选择游戏 */
+  /** 横板类游玩中：切换账号，登录后回选择游戏 */
   onReturnToAccountsAfterWarrior(): void {
     this.showUpgrade.set(false);
     this.showAchievement.set(false);

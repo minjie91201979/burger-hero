@@ -1,6 +1,6 @@
 import { Component, output } from '@angular/core';
 
-export type SelectableGameId = 'burger' | 'warrior';
+export type SelectableGameId = 'burger' | 'warrior' | 'hero-duel';
 
 @Component({
   selector: 'app-game-select',
@@ -9,7 +9,9 @@ export type SelectableGameId = 'burger' | 'warrior';
     <div class="page">
       <div class="panel">
         <h1 class="title">选择游戏</h1>
-        <p class="hint">请先选择要玩的游戏。选「汉堡小英雄」需先登录存档账号；「武将行军」可直接开始。</p>
+        <p class="hint">
+          请先选择要玩的游戏。选「汉堡小英雄」需先登录存档账号；「武将行军」「英雄对决」可直接开始。
+        </p>
 
         <div class="cards">
           <button type="button" class="card card--burger" (click)="picked.emit('burger')">
@@ -21,6 +23,11 @@ export type SelectableGameId = 'burger' | 'warrior';
             <span class="card-kicker">横板演示</span>
             <span class="card-name">武将行军</span>
             <span class="card-desc">雪碧图行走：A 向左、D 向右。</span>
+          </button>
+          <button type="button" class="card card--hero-duel" (click)="picked.emit('hero-duel')">
+            <span class="card-kicker">策略卡牌</span>
+            <span class="card-name">英雄对决</span>
+            <span class="card-desc">选将、横板移动、技能与手牌补牌（复用武将行军素材）。</span>
           </button>
         </div>
 
@@ -98,6 +105,9 @@ export type SelectableGameId = 'burger' | 'warrior';
       }
       .card--warrior {
         background: linear-gradient(160deg, rgba(66, 165, 245, 0.12), rgba(255, 255, 255, 0.03));
+      }
+      .card--hero-duel {
+        background: linear-gradient(160deg, rgba(255, 152, 0, 0.14), rgba(183, 28, 28, 0.08));
       }
       .card-kicker {
         display: block;

@@ -24,6 +24,21 @@
         <app-warrior-walk-game-container />
       </main>
     </div>
+  } @else if (phase() === 'play' && playGameId() === 'hero-duel') {
+    <div class="warrior-play-shell hero-duel-play-shell">
+      <header class="warrior-play-header">
+        <h1 class="warrior-play-title hero-duel-play-title">英雄对决</h1>
+        <div class="warrior-play-actions">
+          <button type="button" class="warrior-btn" (click)="onReturnToGameSelect()">返回选游戏</button>
+          <button type="button" class="warrior-btn warrior-btn--muted" (click)="onReturnToAccountsAfterWarrior()">
+            切换账号
+          </button>
+        </div>
+      </header>
+      <main class="warrior-play-main">
+        <app-hero-duel-game-container />
+      </main>
+    </div>
   } @else if (phase() === 'play' && playGameId() === 'burger') {
     <div class="play-shell">
       <header class="play-header">

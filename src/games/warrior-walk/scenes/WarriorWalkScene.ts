@@ -42,10 +42,16 @@ const ENEMY_SPAWN_MARGIN_X = 250;
 const ENEMY_SPAWN_COUNT_MIN = 8;
 const ENEMY_SPAWN_COUNT_MAX = 15;
 const WARRIOR_MELEE_REACH = 135;
+/** 以当前重力与 JUMP_VELOCITY 估算的站立起跳最大升高（像素，略留余量） */
+const MAX_STANDING_JUMP_DELTA_Y = 96;
+/** 空中平台距地面的最小高度（避免贴地） */
+const PLATFORM_MIN_ABOVE_GROUND = 34;
 
 export class WarriorWalkScene extends Phaser.Scene {
   private player!: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
   private ground!: Phaser.GameObjects.Rectangle;
+  /** 随机空中平台（静态碰撞体） */
+  private platforms!: Phaser.Physics.Arcade.StaticGroup;
   private keyA!: Phaser.Input.Keyboard.Key;
   private keyD!: Phaser.Input.Keyboard.Key;
   private keySpace!: Phaser.Input.Keyboard.Key;
@@ -114,6 +120,8 @@ export class WarriorWalkScene extends Phaser.Scene {
       this.add.rectangle(this.worldW / 2, GROUND_CY - 24, this.worldW, 8, 0xffb74d, 0.35);
     }
 
+    this.spawnAirPlatforms();
+
     if (!this.anims.exists(this.walkAnimKey)) {
       this.anims.create({
         key: this.walkAnimKey,
@@ -180,10 +188,12 @@ export class WarriorWalkScene extends Phaser.Scene {
     body.setOffset(130, 200);
 
     this.physics.add.collider(this.player, this.ground);
+    this.physics.add.collider(this.player, this.platforms);
 
     this.enemies = this.physics.add.group();
     this.fireballs = this.add.group();
     this.spawnEnemies();
+    this.physics.add.collider(this.enemies, this.platforms);
     this.physics.add.collider(this.player, this.enemies);
 
     this.input.on('pointerdown', this.onPointerDown, this);
@@ -233,6 +243,65 @@ export class WarriorWalkScene extends Phaser.Scene {
       this.physics?.world?.off('worldbounds', this.onWorldBounds);
       keyR?.off('down', onReselect);
     });
+  }
+
+  /**
+   * 在世界中随机放置空中平台；顶面高度限制在「站立起跳」可达范围内，保证能从地面跳上去。
+   */
+  private spawnAirPlatforms(): void {
+    this.platforms = this.physics.add.staticGroup();
+    const groundSurfaceY = GROUND_CY - GROUND_H / 2;
+    const minSurfaceY = groundSurfaceY - MAX_STANDING_JUMP_DELTA_Y;
+    const maxSurfaceYDefault = groundSurfaceY - PLATFORM_MIN_ABOVE_GROUND;
+
+    const minX = 380;
+    const maxX = this.worldW - 320;
+    const count = Phaser.Math.Clamp(Math.floor(this.worldW / 700), 4, 20);
+
+    const occupied: Phaser.Geom.Rectangle[] = [];
+
+    for (let i = 0; i < count; i++) {
+      let placed = false;
+      for (let t = 0; t < 16 && !placed; t++) {
+        const pw = Phaser.Math.Between(90, 170);
+        const ph = Phaser.Math.Between(14, 26);
+        const maxSurfaceY = Math.min(maxSurfaceYDefault, groundSurfaceY - ph - 8);
+        if (maxSurfaceY < minSurfaceY) {
+          continue;
+        }
+        const surfaceY = Phaser.Math.Between(minSurfaceY, maxSurfaceY);
+        const cx = Phaser.Math.Between(minX + Math.floor(pw / 2), maxX - Math.floor(pw / 2));
+        const cy = surfaceY + ph / 2;
+
+        const padX = 48;
+        const padY = 20;
+        const probe = new Phaser.Geom.Rectangle(
+          cx - pw / 2 - padX,
+          surfaceY - padY,
+          pw + padX * 2,
+          ph + padY * 2,
+        );
+        if (occupied.some((r) => Phaser.Geom.Intersects.RectangleToRectangle(r, probe))) {
+          continue;
+        }
+
+        // 出生点附近少放高处台子，避免开局挡路
+        if (cx > 260 && cx < 1100 && surfaceY < groundSurfaceY - 55) {
+          continue;
+        }
+
+        const colors = [0x6d4c41, 0x5d4037, 0x4e342e, 0x795548, 0x8d6e63];
+        const plat = this.add.rectangle(cx, cy, pw, ph, Phaser.Math.RND.pick(colors), 0.93);
+        plat.setStrokeStyle(2, 0xffe0b2, 0.5);
+        plat.setDepth(-4);
+
+        this.physics.add.existing(plat, true);
+        this.platforms.add(plat);
+
+        occupied.push(probe);
+        placed = true;
+      }
+    }
   }
 
   /**
@@ -338,6 +407,11 @@ export class WarriorWalkScene extends Phaser.Scene {
     });
     fb.setData('groundCol', groundCol);
 
+    const platCol = this.physics.add.collider(fb, this.platforms, () => {
+      this.explodeFireball(fb);
+    });
+    fb.setData('platCol', platCol);
+
     const playerOverlap = this.physics.add.overlap(fb, this.player, () => {
       if (fb.getData('canHitPlayer')) {
         this.explodeFireball(fb);
@@ -352,6 +426,8 @@ export class WarriorWalkScene extends Phaser.Scene {
 
     const gc = fb.getData('groundCol') as Phaser.Physics.Arcade.Collider | undefined;
     gc?.destroy();
+    const plc = fb.getData('platCol') as Phaser.Physics.Arcade.Collider | undefined;
+    plc?.destroy();
     const po = fb.getData('playerOverlap') as Phaser.Physics.Arcade.Collider | undefined;
     po?.destroy();
 
