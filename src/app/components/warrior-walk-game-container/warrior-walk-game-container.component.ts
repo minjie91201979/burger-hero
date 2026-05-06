@@ -54,6 +54,7 @@ export class WarriorWalkGameContainerComponent {
   private async boot(): Promise<void> {
     const Phaser = await import('phaser');
     const { WarriorWalkPreloadScene } = await import('../../../games/warrior-walk/scenes/WarriorWalkPreloadScene');
+    const { WarriorWalkSelectScene } = await import('../../../games/warrior-walk/scenes/WarriorWalkSelectScene');
     const { WarriorWalkScene } = await import('../../../games/warrior-walk/scenes/WarriorWalkScene');
 
     this.zone.runOutsideAngular(() => {
@@ -64,16 +65,17 @@ export class WarriorWalkGameContainerComponent {
         height: 420,
         transparent: false,
         backgroundColor: '#0d1642',
-        scene: [WarriorWalkPreloadScene, WarriorWalkScene],
+        scene: [WarriorWalkPreloadScene, WarriorWalkSelectScene, WarriorWalkScene],
         physics: {
           default: 'arcade',
           arcade: {
             gravity: { x: 0, y: 0 },
             debug: false,
+            useTree: false,
           },
         },
         scale: {
-          mode: Phaser.Scale.FIT,
+          mode: Phaser.Scale.ENVELOP,
           autoCenter: Phaser.Scale.CENTER_BOTH,
         },
       };
