@@ -69,10 +69,10 @@ const LOGIN_BG = 'assets/images/kitchen/hamburger_login_bg.png';
       :host {
         display: block;
         height: 100%;
-        min-height: 100vh;
+        min-height: 100%;
       }
       .gate {
-        min-height: 100vh;
+        min-height: 100%;
         display: flex;
         align-items: center;
         justify-content: center;

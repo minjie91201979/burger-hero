@@ -24,11 +24,13 @@ import { Component, DestroyRef, NgZone, afterNextRender, inject } from '@angular
         border-radius: 12px;
         overflow: hidden;
         box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+        touch-action: none;
       }
       .phaser-host {
         width: 100%;
         height: 100%;
         min-height: 360px;
+        touch-action: none;
       }
     `,
   ],
@@ -66,6 +68,10 @@ export class WarriorWalkGameContainerComponent {
         transparent: false,
         backgroundColor: '#0d1642',
         scene: [WarriorWalkPreloadScene, WarriorWalkSelectScene, WarriorWalkScene],
+        input: {
+          activePointers: 4,
+          touch: { capture: true },
+        },
         physics: {
           default: 'arcade',
           arcade: {
@@ -75,11 +81,29 @@ export class WarriorWalkGameContainerComponent {
           },
         },
         scale: {
-          mode: Phaser.Scale.ENVELOP,
+          mode: Phaser.Scale.FIT,
           autoCenter: Phaser.Scale.CENTER_BOTH,
         },
       };
       this.game = new Phaser.Game(config);
+      this.hookPhaserScaleRefresh();
+    });
+  }
+
+  private hookPhaserScaleRefresh(): void {
+    const game = this.game;
+    if (!game) return;
+    const refresh = (): void => {
+      game.scale.refresh();
+    };
+    globalThis.addEventListener('resize', refresh);
+    const vv = globalThis.visualViewport;
+    if (vv) {
+      vv.addEventListener('resize', refresh);
+    }
+    this.destroyRef.onDestroy(() => {
+      globalThis.removeEventListener('resize', refresh);
+      vv?.removeEventListener('resize', refresh);
     });
   }
 }

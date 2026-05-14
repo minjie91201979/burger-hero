@@ -12,10 +12,18 @@
     "electron:dev": "concurrently \"ng serve\" \"wait-on http://localhost:4200 && electron .\"",
     "electron:prebuild": "node ./scripts/electron-prebuild.cjs",
     "electron:build": "npm run electron:prebuild && ng build && electron-builder --config electron-builder.json",
-    "electron:build:portable": "npm run electron:prebuild && ng build && electron-builder --config electron-builder.portable.json"
+    "electron:build:portable": "npm run electron:prebuild && ng build && electron-builder --config electron-builder.portable.json",
+    "cap:sync": "npm exec -- capacitor sync",
+    "cap:sync:android": "npm exec -- capacitor sync android",
+    "android:open": "npm exec -- capacitor open android",
+    "android:add": "npm exec -- capacitor add android",
+    "android:build": "ng build && npm exec -- capacitor sync android"
   },
   "private": true,
   "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/cli": "^6.2.0",
+    "@capacitor/core": "^6.2.0",
     "electron-store": "^11.0.2"
   },
   "devDependencies": {

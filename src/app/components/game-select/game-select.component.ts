@@ -1,6 +1,6 @@
 import { Component, output } from '@angular/core';
 
-export type SelectableGameId = 'burger' | 'warrior' | 'hero-duel';
+export type SelectableGameId = 'burger' | 'warrior' | 'hero-duel' | 'survival-shooter';
 
 @Component({
   selector: 'app-game-select',
@@ -10,7 +10,7 @@ export type SelectableGameId = 'burger' | 'warrior' | 'hero-duel';
       <div class="panel">
         <h1 class="title">选择游戏</h1>
         <p class="hint">
-          请先选择要玩的游戏。选「汉堡小英雄」需先登录存档账号；「武将行军」「英雄对决」可直接开始。
+          请先选择要玩的游戏。选「汉堡小英雄」需先登录存档账号；其余几款可直接开始。
         </p>
 
         <div class="cards">
@@ -29,6 +29,11 @@ export type SelectableGameId = 'burger' | 'warrior' | 'hero-duel';
             <span class="card-name">英雄对决</span>
             <span class="card-desc">选将、横板移动、技能与手牌补牌（复用武将行军素材）。</span>
           </button>
+          <button type="button" class="card card--survival" (click)="picked.emit('survival-shooter')">
+            <span class="card-kicker">俯视生存</span>
+            <span class="card-name">孤胆幸存者</span>
+            <span class="card-desc">法师 / 武将大战日本武士；大地图四向移动，手机带虚拟摇杆与射击键。</span>
+          </button>
         </div>
 
         <div class="footer-links">
@@ -43,10 +48,11 @@ export type SelectableGameId = 'burger' | 'warrior' | 'hero-duel';
     `
       :host {
         display: block;
-        min-height: 100vh;
+        height: 100%;
+        min-height: 100%;
       }
       .page {
-        min-height: 100vh;
+        min-height: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -108,6 +114,9 @@ export type SelectableGameId = 'burger' | 'warrior' | 'hero-duel';
       }
       .card--hero-duel {
         background: linear-gradient(160deg, rgba(255, 152, 0, 0.14), rgba(183, 28, 28, 0.08));
+      }
+      .card--survival {
+        background: linear-gradient(160deg, rgba(186, 104, 200, 0.18), rgba(49, 27, 61, 0.35));
       }
       .card-kicker {
         display: block;

@@ -1,6 +1,43 @@
+:root {
+  /* index.html 内联脚本会用实际可视区域（px）覆盖，避免移动端 100vh 含地址栏导致底部裁切 */
+  --app-height: 100vh;
+  --app-width: 100vw;
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --app-height: 100dvh;
+    --app-width: 100dvw;
+  }
+}
+
 html,
 body {
   margin: 0;
-  min-height: 100%;
-  height: 100%;
+  min-height: var(--app-height);
+  height: var(--app-height);
+  width: 100%;
+}
+
+/**
+ * 手机竖持时在浏览器内以横屏区域展示整站（与 Android APK 的 sensorLandscape 互补）。
+ * 小屏 + 竖屏：整页旋转，避免竖屏玩横版游戏。
+ */
+@media screen and (orientation: portrait) and (max-width: 1024px) {
+  html {
+    transform: rotate(-90deg);
+    transform-origin: left top;
+    width: var(--app-height);
+    height: var(--app-width);
+    position: fixed;
+    top: 100%;
+    left: 0;
+    overflow: hidden;
+  }
+
+  body {
+    width: var(--app-width);
+    height: var(--app-height);
+    overflow: hidden;
+  }
 }

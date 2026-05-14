@@ -24,11 +24,13 @@ import { Component, DestroyRef, NgZone, afterNextRender, inject } from '@angular
         border-radius: 12px;
         overflow: hidden;
         box-shadow: inset 0 0 0 1px rgba(255, 193, 7, 0.12);
+        touch-action: none;
       }
       .phaser-host {
         width: 100%;
         height: 100%;
         min-height: 360px;
+        touch-action: none;
       }
     `,
   ],
@@ -66,6 +68,10 @@ export class HeroDuelGameContainerComponent {
         transparent: false,
         backgroundColor: '#1b1210',
         scene: [HeroDuelPreloadScene, HeroDuelSelectScene, HeroDuelBattleScene],
+        input: {
+          activePointers: 4,
+          touch: { capture: true },
+        },
         physics: {
           default: 'arcade',
           arcade: {
@@ -75,11 +81,29 @@ export class HeroDuelGameContainerComponent {
           },
         },
         scale: {
-          mode: Phaser.Scale.ENVELOP,
+          mode: Phaser.Scale.FIT,
           autoCenter: Phaser.Scale.CENTER_BOTH,
         },
       };
       this.game = new Phaser.Game(config);
+      this.hookPhaserScaleRefresh();
+    });
+  }
+
+  private hookPhaserScaleRefresh(): void {
+    const game = this.game;
+    if (!game) return;
+    const refresh = (): void => {
+      game.scale.refresh();
+    };
+    globalThis.addEventListener('resize', refresh);
+    const vv = globalThis.visualViewport;
+    if (vv) {
+      vv.addEventListener('resize', refresh);
+    }
+    this.destroyRef.onDestroy(() => {
+      globalThis.removeEventListener('resize', refresh);
+      vv?.removeEventListener('resize', refresh);
     });
   }
 }

@@ -39,6 +39,21 @@
         <app-hero-duel-game-container />
       </main>
     </div>
+  } @else if (phase() === 'play' && playGameId() === 'survival-shooter') {
+    <div class="warrior-play-shell survival-shooter-play-shell">
+      <header class="warrior-play-header">
+        <h1 class="warrior-play-title survival-shooter-play-title">孤胆幸存者</h1>
+        <div class="warrior-play-actions">
+          <button type="button" class="warrior-btn" (click)="onReturnToGameSelect()">返回选游戏</button>
+          <button type="button" class="warrior-btn warrior-btn--muted" (click)="onReturnToAccountsAfterWarrior()">
+            切换账号
+          </button>
+        </div>
+      </header>
+      <main class="warrior-play-main">
+        <app-survival-shooter-game-container />
+      </main>
+    </div>
   } @else if (phase() === 'play' && playGameId() === 'burger') {
     <div class="play-shell">
       <header class="play-header">
@@ -117,6 +132,41 @@
           >
             <app-settings (closed)="showSettings.set(false)" />
           </div>
+        </div>
+      }
+    </div>
+  }
+
+  @if (
+    phase() === 'play' &&
+    (playGameId() === 'warrior' || playGameId() === 'hero-duel' || playGameId() === 'survival-shooter')
+  ) {
+    <div class="warrior-mobile-nav">
+      <button
+        type="button"
+        class="warrior-mobile-nav__fab"
+        [attr.aria-expanded]="warriorMobileMenuOpen()"
+        aria-haspopup="true"
+        aria-label="游戏菜单"
+        (click)="toggleWarriorMobileMenu()"
+      >
+        <span class="warrior-mobile-nav__fab-icon" aria-hidden="true"></span>
+      </button>
+      @if (warriorMobileMenuOpen()) {
+        <button
+          type="button"
+          class="warrior-mobile-nav__backdrop"
+          tabindex="-1"
+          aria-label="关闭菜单"
+          (click)="warriorMobileMenuOpen.set(false)"
+        ></button>
+        <div class="warrior-mobile-nav__sheet" role="menu" (click)="$event.stopPropagation()">
+          <button type="button" class="warrior-mobile-nav__item" role="menuitem" (click)="onWarriorMenuReturnSelect()">
+            返回选游戏
+          </button>
+          <button type="button" class="warrior-mobile-nav__item" role="menuitem" (click)="onWarriorMenuAccounts()">
+            切换账号
+          </button>
         </div>
       }
     </div>

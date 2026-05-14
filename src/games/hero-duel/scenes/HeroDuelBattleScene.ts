@@ -33,8 +33,8 @@ export class HeroDuelBattleScene extends Phaser.Scene {
   private player!: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
   private ground!: Phaser.GameObjects.Rectangle;
   private enemies!: Phaser.Physics.Arcade.Group;
-  private keyA!: Phaser.Input.Keyboard.Key;
-  private keyD!: Phaser.Input.Keyboard.Key;
+  private keyA?: Phaser.Input.Keyboard.Key;
+  private keyD?: Phaser.Input.Keyboard.Key;
 
   private walkTextureKey!: string;
   private walkAnimKey!: string;
@@ -89,6 +89,17 @@ export class HeroDuelBattleScene extends Phaser.Scene {
   private longdanHit = new Set<Phaser.Physics.Arcade.Sprite>();
   /** Phaser 4：create 阶段立刻 setText 可能尚未建立 Canvas 纹理，推迟到 update 再刷新手牌 UI */
   private handUiDirty = false;
+
+  private showTouchUi = false;
+  private joystickCenterX = 0;
+  private joystickCenterY = 0;
+  private joystickRadius = 56;
+  private joystickThumbRadius = 20;
+  private joystickActiveId: number | null = null;
+  private joystickVec = new Phaser.Math.Vector2(0, 0);
+  private joystickBase!: Phaser.GameObjects.Arc;
+  private joystickThumb!: Phaser.GameObjects.Arc;
+  private moveTouchUi!: Phaser.GameObjects.Container;
 
   constructor() {
     super({ key: 'HeroDuelBattleScene' });
@@ -212,6 +223,14 @@ export class HeroDuelBattleScene extends Phaser.Scene {
 
     this.buildHud(def.name);
 
+    this.showTouchUi = this.computeShowTouchUi();
+    this.layoutMoveTouchUi();
+    this.scale.on('resize', this.layoutMoveTouchUi, this);
+    this.input.on('pointerdown', this.onBattlePointerDown, this);
+    this.input.on('pointermove', this.onBattlePointerMove, this);
+    this.input.on('pointerup', this.onBattlePointerUp, this);
+    this.input.on('pointerupoutside', this.onBattlePointerUp, this);
+
     this.floatingTip = this.add
       .text(VIEW_W / 2, 120, '', {
         fontFamily: 'system-ui, "Microsoft YaHei", sans-serif',
@@ -233,8 +252,87 @@ export class HeroDuelBattleScene extends Phaser.Scene {
     this.events.once('shutdown', () => {
       keyR?.off('down');
       this.input.keyboard?.off('keydown', onSkillKey);
+      this.input.off('pointerdown', this.onBattlePointerDown, this);
+      this.input.off('pointermove', this.onBattlePointerMove, this);
+      this.input.off('pointerup', this.onBattlePointerUp, this);
+      this.input.off('pointerupoutside', this.onBattlePointerUp, this);
+      this.scale.off('resize', this.layoutMoveTouchUi, this);
       this.windWallTick?.remove(false);
     });
+  }
+
+  private computeShowTouchUi(): boolean {
+    const w = this.scale.width;
+    if (w <= 900) return true;
+    const os = this.sys.game.device.os;
+    return !!(os.android || os.iOS);
+  }
+
+  private layoutMoveTouchUi(): void {
+    const h = this.scale.height;
+    this.joystickCenterX = 78;
+    this.joystickCenterY = h - 212;
+
+    if (!this.moveTouchUi) {
+      this.moveTouchUi = this.add.container(0, 0);
+      this.moveTouchUi.setScrollFactor(0);
+      this.moveTouchUi.setDepth(2500);
+      this.joystickBase = this.add
+        .circle(0, 0, this.joystickRadius, 0x000000, 0.3)
+        .setStrokeStyle(2, 0xffffff, 0.32);
+      this.joystickThumb = this.add
+        .circle(0, 0, this.joystickThumbRadius, 0xffffff, 0.38)
+        .setStrokeStyle(2, 0xffb74d, 0.5);
+      this.moveTouchUi.add([this.joystickBase, this.joystickThumb]);
+    }
+    this.joystickBase.setPosition(this.joystickCenterX, this.joystickCenterY);
+    this.joystickThumb.setPosition(this.joystickCenterX, this.joystickCenterY);
+    this.moveTouchUi.setVisible(this.showTouchUi);
+    if (!this.showTouchUi) {
+      this.joystickVec.set(0, 0);
+      this.joystickActiveId = null;
+    }
+  }
+
+  private isPointerOnMoveJoystick(px: number, py: number): boolean {
+    return Phaser.Math.Distance.Between(px, py, this.joystickCenterX, this.joystickCenterY) <= this.joystickRadius + 28;
+  }
+
+  private updateMoveJoystickThumb(px: number, py: number): void {
+    const dx = px - this.joystickCenterX;
+    const dy = py - this.joystickCenterY;
+    const len = Math.hypot(dx, dy);
+    const max = this.joystickRadius - 6;
+    const nx = len > max ? (dx / len) * max : dx;
+    const ny = len > max ? (dy / len) * max : dy;
+    this.joystickThumb.setPosition(this.joystickCenterX + nx, this.joystickCenterY + ny);
+    if (len < 5) {
+      this.joystickVec.set(0, 0);
+    } else {
+      const inv = 1 / Math.max(len, 1);
+      this.joystickVec.set(dx * inv, dy * inv);
+    }
+  }
+
+  private onBattlePointerDown(pointer: Phaser.Input.Pointer): void {
+    if (!this.showTouchUi || this.isBattleOver) return;
+    if (this.isPointerOnMoveJoystick(pointer.x, pointer.y)) {
+      this.joystickActiveId = pointer.id;
+      this.updateMoveJoystickThumb(pointer.x, pointer.y);
+    }
+  }
+
+  private onBattlePointerMove(pointer: Phaser.Input.Pointer): void {
+    if (this.joystickActiveId !== pointer.id) return;
+    this.updateMoveJoystickThumb(pointer.x, pointer.y);
+  }
+
+  private onBattlePointerUp(pointer: Phaser.Input.Pointer): void {
+    if (this.joystickActiveId === pointer.id) {
+      this.joystickActiveId = null;
+      this.joystickVec.set(0, 0);
+      this.joystickThumb.setPosition(this.joystickCenterX, this.joystickCenterY);
+    }
   }
 
   private layoutBackground(): number {
@@ -989,8 +1087,13 @@ export class HeroDuelBattleScene extends Phaser.Scene {
 
     let vx = 0;
     const base = 260 * this.speedMult;
-    if (this.keyA.isDown) vx -= base;
-    if (this.keyD.isDown) vx += base;
+    const joy = this.showTouchUi && this.joystickVec.length() > 0.08;
+    if (joy) {
+      vx = base * Phaser.Math.Clamp(this.joystickVec.x, -1, 1);
+    } else {
+      if (this.keyA?.isDown) vx -= base;
+      if (this.keyD?.isDown) vx += base;
+    }
     this.player.setVelocityX(vx);
     this.player.y = FEET_Y;
 

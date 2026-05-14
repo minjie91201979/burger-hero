@@ -52,9 +52,9 @@ export class WarriorWalkScene extends Phaser.Scene {
   private ground!: Phaser.GameObjects.Rectangle;
   /** 随机空中平台（静态碰撞体） */
   private platforms!: Phaser.Physics.Arcade.StaticGroup;
-  private keyA!: Phaser.Input.Keyboard.Key;
-  private keyD!: Phaser.Input.Keyboard.Key;
-  private keySpace!: Phaser.Input.Keyboard.Key;
+  private keyA?: Phaser.Input.Keyboard.Key;
+  private keyD?: Phaser.Input.Keyboard.Key;
+  private keySpace?: Phaser.Input.Keyboard.Key;
   private wasOnFloor = true;
   private landPoseMs = 0;
   private attacking = false;
@@ -73,6 +73,38 @@ export class WarriorWalkScene extends Phaser.Scene {
   private fireballs!: Phaser.GameObjects.Group;
   private meleeHitThisSwing = new Set<Phaser.Physics.Arcade.Sprite>();
   private worldW = MIN_WORLD_W;
+
+  private showTouchUi = false;
+  private joystickCenterX = 0;
+  private joystickCenterY = 0;
+  private joystickRadius = 64;
+  private joystickThumbRadius = 22;
+  private joystickActiveId: number | null = null;
+  private joystickVec = new Phaser.Math.Vector2(0, 0);
+  private joystickBase!: Phaser.GameObjects.Arc;
+  private joystickThumb!: Phaser.GameObjects.Arc;
+  private jumpBtnCX = 0;
+  private jumpBtnCY = 0;
+  private jumpBtnR = 40;
+  private attackBtnCX = 0;
+  private attackBtnCY = 0;
+  private attackBtnR = 40;
+  private jumpBtnGfx!: Phaser.GameObjects.Arc;
+  private attackBtnGfx!: Phaser.GameObjects.Arc;
+  private jumpBtnLabel?: Phaser.GameObjects.Text;
+  private attackBtnLabel?: Phaser.GameObjects.Text;
+  /** 与键盘 A/D 对应的点按移动（可一手方向键、一手跳/攻） */
+  private leftDirCX = 0;
+  private leftDirCY = 0;
+  private rightDirCX = 0;
+  private rightDirCY = 0;
+  private readonly dirPadR = 30;
+  private leftDirGfx!: Phaser.GameObjects.Arc;
+  private rightDirGfx!: Phaser.GameObjects.Arc;
+  private leftDirLabel?: Phaser.GameObjects.Text;
+  private rightDirLabel?: Phaser.GameObjects.Text;
+  private mobileUi!: Phaser.GameObjects.Container;
+  private mobileJumpQueued = false;
 
   constructor() {
     super({ key: 'WarriorWalkScene' });
@@ -197,6 +229,11 @@ export class WarriorWalkScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.enemies);
 
     this.input.on('pointerdown', this.onPointerDown, this);
+    this.input.on('pointermove', this.onPointerMove, this);
+    this.input.on('pointerup', this.onPointerUp, this);
+    this.input.on('pointerupoutside', this.onPointerUp, this);
+    this.layoutMobileControls();
+    this.scale.on('resize', this.layoutMobileControls, this);
 
     this.onWorldBounds = (b: Phaser.Physics.Arcade.Body) => {
       const go = b.gameObject as Phaser.Physics.Arcade.Sprite | undefined;
@@ -217,8 +254,10 @@ export class WarriorWalkScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
     this.cameras.main.setDeadzone(180, 80);
 
-    const hint =
-      this.playClass === 'mage'
+    this.showTouchUi = this.computeShowTouchUi();
+    const hint = this.showTouchUi
+      ? '摇杆或 ◀▶ 左右 · 「跳」「攻」· R 重选'
+      : this.playClass === 'mage'
         ? 'A 向左 · D 向右 · 空格跳跃 · 左键攻击（发射火球） · R 重选角色'
         : 'A 向左 · D 向右 · 空格跳跃 · 鼠标左键攻击 · R 重选角色';
     this.add
@@ -240,9 +279,161 @@ export class WarriorWalkScene extends Phaser.Scene {
 
     this.events.once('shutdown', () => {
       this.input?.off('pointerdown', this.onPointerDown, this);
+      this.input?.off('pointermove', this.onPointerMove, this);
+      this.input?.off('pointerup', this.onPointerUp, this);
+      this.input?.off('pointerupoutside', this.onPointerUp, this);
+      this.scale?.off('resize', this.layoutMobileControls, this);
       this.physics?.world?.off('worldbounds', this.onWorldBounds);
       keyR?.off('down', onReselect);
     });
+  }
+
+  private computeShowTouchUi(): boolean {
+    const w = this.scale.width;
+    if (w <= 900) return true;
+    const os = this.sys.game.device.os;
+    return !!(os.android || os.iOS);
+  }
+
+  private layoutMobileControls(): void {
+    const w = this.scale.width;
+    const h = this.scale.height;
+    this.joystickCenterX = 96;
+    this.joystickCenterY = h - 88;
+    this.leftDirCX = 52;
+    this.leftDirCY = h - 168;
+    this.rightDirCX = 140;
+    this.rightDirCY = h - 168;
+    this.jumpBtnCX = w - 168;
+    this.jumpBtnCY = h - 96;
+    this.attackBtnCX = w - 72;
+    this.attackBtnCY = h - 96;
+
+    if (!this.mobileUi) {
+      this.mobileUi = this.add.container(0, 0);
+      this.mobileUi.setScrollFactor(0);
+      this.mobileUi.setDepth(250);
+
+      this.leftDirGfx = this.add
+        .circle(0, 0, this.dirPadR, 0x0d47a1, 0.48)
+        .setStrokeStyle(2, 0x90caf9, 0.65);
+      this.rightDirGfx = this.add
+        .circle(0, 0, this.dirPadR, 0x0d47a1, 0.48)
+        .setStrokeStyle(2, 0x90caf9, 0.65);
+      this.leftDirLabel = this.add
+        .text(0, 0, '◀', { fontFamily: 'system-ui, sans-serif', fontSize: '20px', color: '#e3f2fd' })
+        .setOrigin(0.5, 0.5);
+      this.rightDirLabel = this.add
+        .text(0, 0, '▶', { fontFamily: 'system-ui, sans-serif', fontSize: '20px', color: '#e3f2fd' })
+        .setOrigin(0.5, 0.5);
+
+      this.joystickBase = this.add
+        .circle(0, 0, this.joystickRadius, 0x000000, 0.32)
+        .setStrokeStyle(2, 0xffffff, 0.35);
+      this.joystickThumb = this.add
+        .circle(0, 0, this.joystickThumbRadius, 0xffffff, 0.4)
+        .setStrokeStyle(2, 0x90caf9, 0.55);
+      this.jumpBtnGfx = this.add.circle(0, 0, this.jumpBtnR, 0x1565c0, 0.55).setStrokeStyle(2, 0xbbdefb, 0.85);
+      this.attackBtnGfx = this.add.circle(0, 0, this.attackBtnR, 0xc62828, 0.55).setStrokeStyle(2, 0xffccbc, 0.85);
+      this.jumpBtnLabel = this.add
+        .text(0, 0, '跳', { fontFamily: 'system-ui, sans-serif', fontSize: '18px', color: '#e3f2fd' })
+        .setOrigin(0.5, 0.5);
+      this.attackBtnLabel = this.add
+        .text(0, 0, '攻', { fontFamily: 'system-ui, sans-serif', fontSize: '18px', color: '#fff3e0' })
+        .setOrigin(0.5, 0.5);
+      this.mobileUi.add([
+        this.leftDirGfx,
+        this.rightDirGfx,
+        this.leftDirLabel,
+        this.rightDirLabel,
+        this.joystickBase,
+        this.joystickThumb,
+        this.jumpBtnGfx,
+        this.attackBtnGfx,
+        this.jumpBtnLabel,
+        this.attackBtnLabel,
+      ]);
+    }
+
+    this.leftDirGfx.setPosition(this.leftDirCX, this.leftDirCY);
+    this.rightDirGfx.setPosition(this.rightDirCX, this.rightDirCY);
+    this.leftDirLabel?.setPosition(this.leftDirCX, this.leftDirCY);
+    this.rightDirLabel?.setPosition(this.rightDirCX, this.rightDirCY);
+    this.joystickBase.setPosition(this.joystickCenterX, this.joystickCenterY);
+    this.joystickThumb.setPosition(this.joystickCenterX, this.joystickCenterY);
+    this.jumpBtnGfx.setPosition(this.jumpBtnCX, this.jumpBtnCY);
+    this.attackBtnGfx.setPosition(this.attackBtnCX, this.attackBtnCY);
+    this.jumpBtnLabel?.setPosition(this.jumpBtnCX, this.jumpBtnCY);
+    this.attackBtnLabel?.setPosition(this.attackBtnCX, this.attackBtnCY);
+
+    this.mobileUi.setVisible(this.showTouchUi);
+    if (!this.showTouchUi) {
+      this.joystickVec.set(0, 0);
+      this.joystickActiveId = null;
+    }
+  }
+
+  private isPointerOnLeftDirPad(px: number, py: number): boolean {
+    return Phaser.Math.Distance.Between(px, py, this.leftDirCX, this.leftDirCY) <= this.dirPadR + 14;
+  }
+
+  private isPointerOnRightDirPad(px: number, py: number): boolean {
+    return Phaser.Math.Distance.Between(px, py, this.rightDirCX, this.rightDirCY) <= this.dirPadR + 14;
+  }
+
+  private isPointerOnJoystick(px: number, py: number): boolean {
+    return Phaser.Math.Distance.Between(px, py, this.joystickCenterX, this.joystickCenterY) <= this.joystickRadius + 32;
+  }
+
+  private isPointerOnJump(px: number, py: number): boolean {
+    return Phaser.Math.Distance.Between(px, py, this.jumpBtnCX, this.jumpBtnCY) <= this.jumpBtnR + 12;
+  }
+
+  private isPointerOnAttack(px: number, py: number): boolean {
+    return Phaser.Math.Distance.Between(px, py, this.attackBtnCX, this.attackBtnCY) <= this.attackBtnR + 12;
+  }
+
+  private updateJoystickThumb(px: number, py: number): void {
+    const dx = px - this.joystickCenterX;
+    const dy = py - this.joystickCenterY;
+    const len = Math.hypot(dx, dy);
+    const max = this.joystickRadius - 6;
+    const nx = len > max ? (dx / len) * max : dx;
+    const ny = len > max ? (dy / len) * max : dy;
+    this.joystickThumb.setPosition(this.joystickCenterX + nx, this.joystickCenterY + ny);
+    if (len < 5) {
+      this.joystickVec.set(0, 0);
+    } else {
+      const inv = 1 / Math.max(len, 1);
+      this.joystickVec.set(dx * inv, dy * inv);
+    }
+  }
+
+  private onPointerMove(pointer: Phaser.Input.Pointer): void {
+    if (this.joystickActiveId !== pointer.id) return;
+    this.updateJoystickThumb(pointer.x, pointer.y);
+  }
+
+  private onPointerUp(pointer: Phaser.Input.Pointer): void {
+    if (this.joystickActiveId === pointer.id) {
+      this.joystickActiveId = null;
+      this.joystickVec.set(0, 0);
+      this.joystickThumb.setPosition(this.joystickCenterX, this.joystickCenterY);
+    }
+  }
+
+  /** 多点触摸：统计当前落在 ◀ ▶ 上的指针，供 update 与键盘 A/D 合并 */
+  private touchDirPadSign(): number {
+    if (!this.showTouchUi) return 0;
+    const mgr = this.input.manager;
+    let d = 0;
+    for (let i = 0; i < mgr.pointersTotal; i++) {
+      const p = mgr.pointers[i];
+      if (!p.active || !p.isDown) continue;
+      if (this.isPointerOnLeftDirPad(p.x, p.y)) d -= 1;
+      if (this.isPointerOnRightDirPad(p.x, p.y)) d += 1;
+    }
+    return Phaser.Math.Clamp(d, -1, 1);
   }
 
   /**
@@ -345,6 +536,27 @@ export class WarriorWalkScene extends Phaser.Scene {
   }
 
   private onPointerDown(pointer: Phaser.Input.Pointer): void {
+    if (this.showTouchUi) {
+      const px = pointer.x;
+      const py = pointer.y;
+      if (this.isPointerOnJump(px, py)) {
+        this.mobileJumpQueued = true;
+        return;
+      }
+      if (this.isPointerOnAttack(px, py)) {
+        this.tryAttack();
+        return;
+      }
+      if (this.isPointerOnLeftDirPad(px, py) || this.isPointerOnRightDirPad(px, py)) {
+        return;
+      }
+      if (this.isPointerOnJoystick(px, py)) {
+        this.joystickActiveId = pointer.id;
+        this.updateJoystickThumb(px, py);
+        return;
+      }
+      return;
+    }
     if (!pointer.leftButtonDown()) return;
     this.tryAttack();
   }
@@ -613,15 +825,23 @@ export class WarriorWalkScene extends Phaser.Scene {
     const body = this.player.body as Phaser.Physics.Arcade.Body;
     const onGround = body.onFloor();
 
-    if (!this.attacking && Phaser.Input.Keyboard.JustDown(this.keySpace) && onGround) {
+    const spaceJump = this.keySpace ? Phaser.Input.Keyboard.JustDown(this.keySpace) : false;
+    if (!this.attacking && onGround && (spaceJump || this.mobileJumpQueued)) {
       this.landPoseMs = 0;
       body.setVelocityY(JUMP_VELOCITY);
+      this.mobileJumpQueued = false;
     }
 
     let vx = 0;
     if (!this.attacking) {
-      if (this.keyA.isDown) vx -= MOVE_SPEED;
-      if (this.keyD.isDown) vx += MOVE_SPEED;
+      const joyActive = this.showTouchUi && this.joystickVec.length() > 0.08;
+      const padSign = this.touchDirPadSign();
+      if (joyActive) {
+        vx = MOVE_SPEED * Phaser.Math.Clamp(this.joystickVec.x, -1, 1);
+      } else {
+        if (this.keyA?.isDown || padSign < 0) vx -= MOVE_SPEED;
+        if (this.keyD?.isDown || padSign > 0) vx += MOVE_SPEED;
+      }
     }
     this.player.setVelocityX(vx);
 

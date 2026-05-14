@@ -6,6 +6,7 @@ import { GameContainerComponent } from './components/game-container/game-contain
 import { GameSelectComponent, type SelectableGameId } from './components/game-select/game-select.component';
 import { WarriorWalkGameContainerComponent } from './components/warrior-walk-game-container/warrior-walk-game-container.component';
 import { HeroDuelGameContainerComponent } from './components/hero-duel-game-container/hero-duel-game-container.component';
+import { SurvivalShooterGameContainerComponent } from './components/survival-shooter-game-container/survival-shooter-game-container.component';
 import { HudComponent } from './components/hud/hud.component';
 import { OrderPanelComponent } from './components/order-panel/order-panel.component';
 import { UpgradePanelComponent } from './components/upgrade-panel/upgrade-panel.component';
@@ -22,6 +23,7 @@ import { TopBarComponent } from './components/top-bar/top-bar.component';
     GameSelectComponent,
     WarriorWalkGameContainerComponent,
     HeroDuelGameContainerComponent,
+    SurvivalShooterGameContainerComponent,
     TopBarComponent,
     HudComponent,
     OrderPanelComponent,
@@ -48,6 +50,8 @@ export class AppComponent {
   readonly showUpgrade = signal(false);
   readonly showAchievement = signal(false);
   readonly showSettings = signal(false);
+  /** 横板类游戏在手机端隐藏顶栏时，用角落菜单代替「返回 / 切换账号」 */
+  readonly warriorMobileMenuOpen = signal(false);
 
   constructor() {
     effect(() => {
@@ -61,6 +65,10 @@ export class AppComponent {
 
   @HostListener('document:keydown.escape')
   onEscapeCloseModals(): void {
+    if (this.warriorMobileMenuOpen()) {
+      this.warriorMobileMenuOpen.set(false);
+      return;
+    }
     if (!this.showUpgrade() && !this.showAchievement() && !this.showSettings()) return;
     this.showUpgrade.set(false);
     this.showAchievement.set(false);
@@ -112,7 +120,7 @@ export class AppComponent {
   }
 
   onPickGame(id: SelectableGameId): void {
-    if (id === 'warrior' || id === 'hero-duel') {
+    if (id === 'warrior' || id === 'hero-duel' || id === 'survival-shooter') {
       this.playGameId.set(id);
       this.phase.set('play');
       return;
@@ -162,9 +170,24 @@ export class AppComponent {
     this.showUpgrade.set(false);
     this.showAchievement.set(false);
     this.showSettings.set(false);
+    this.warriorMobileMenuOpen.set(false);
     this.playGameId.set(null);
     this.gateResumeGame.set(null);
     this.phase.set('game-select');
+  }
+
+  toggleWarriorMobileMenu(): void {
+    this.warriorMobileMenuOpen.update((open) => !open);
+  }
+
+  onWarriorMenuReturnSelect(): void {
+    this.warriorMobileMenuOpen.set(false);
+    this.onReturnToGameSelect();
+  }
+
+  onWarriorMenuAccounts(): void {
+    this.warriorMobileMenuOpen.set(false);
+    this.onReturnToAccountsAfterWarrior();
   }
 
 }

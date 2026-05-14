@@ -27,12 +27,14 @@ const GAME_BG = 'assets/images/kitchen/game_bg.png';
         min-height: 100%;
         position: relative;
         box-sizing: border-box;
+        touch-action: none;
       }
       .burger-host {
         width: 100%;
         height: 100%;
         min-height: 100%;
         position: relative;
+        touch-action: none;
       }
     `,
   ],
@@ -88,6 +90,10 @@ export class GameContainerComponent {
         height: 720,
         transparent: true,
         scene: [PreloadScene, KitchenScene],
+        input: {
+          activePointers: 4,
+          touch: { capture: true },
+        },
         scale: {
           mode: Phaser.Scale.FIT,
           autoCenter: Phaser.Scale.CENTER_BOTH,
